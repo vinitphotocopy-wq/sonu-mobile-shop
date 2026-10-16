@@ -1,0 +1,517 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sonu Mobile Shop | Admin Panel</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f3f5f9;
+      color: #172033;
+    }
+    header {
+      background: #111827;
+      color: white;
+      padding: 20px 16px;
+    }
+    header h1 { margin: 0 0 6px; font-size: 23px; }
+    header p { margin: 0; color: #cbd5e1; font-size: 14px; }
+    main { max-width: 1000px; margin: 22px auto; padding: 0 14px 40px; }
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 18px;
+      box-shadow: 0 3px 14px #1720330d;
+    }
+    h2 { margin: 0 0 16px; font-size: 19px; }
+    label { display: block; font-size: 14px; font-weight: bold; margin: 12px 0 6px; }
+    input, textarea, select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font: inherit;
+      background: white;
+    }
+    textarea { min-height: 80px; resize: vertical; }
+    button {
+      border: 0;
+      padding: 11px 15px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 6px 5px 0 0;
+      background: #2563eb;
+      color: white;
+    }
+    button.secondary { background: #475569; }
+    button.danger { background: #dc2626; }
+    button.success { background: #15803d; }
+    button:disabled { opacity: .6; cursor: not-allowed; }
+    .hidden { display: none !important; }
+    .message { padding: 12px; border-radius: 8px; margin: 12px 0; overflow-wrap: anywhere; }
+    .error { background: #fee2e2; color: #991b1b; }
+    .ok { background: #dcfce7; color: #166534; }
+    .muted { color: #64748b; font-size: 13px; line-height: 1.5; }
+    .product {
+      border: 1px solid #e2e8f0;
+      padding: 14px;
+      border-radius: 10px;
+      margin: 10px 0;
+      overflow-wrap: anywhere;
+    }
+    .product h3 { margin: 0 0 8px; }
+    .product p { margin: 5px 0; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .topline { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .pill { display: inline-block; padding: 4px 8px; border-radius: 20px; background: #e0f2fe; font-size: 12px; }
+    @media (max-width: 600px) {
+      .grid { grid-template-columns: 1fr; }
+      .card { padding: 14px; }
+    }
+  </style>
+</head>
+
+<body>
+<header>
+  <h1>Sonu Mobile Shop</h1>
+  <p>Admin Panel · Products & Shop Settings</p>
+</header>
+
+<main>
+  <div id="message" class="message hidden" role="status"></div>
+
+  <section id="loginCard" class="card">
+    <h2>Admin Login</h2>
+    <p class="muted">Apne Supabase admin account ke email aur password se login karein.</p>
+
+    <form id="loginForm">
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="username" required>
+
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" required>
+
+      <button id="loginButton" type="submit">Login</button>
+    </form>
+  </section>
+
+  <section id="dashboard" class="hidden">
+    <div class="card topline">
+      <div>
+        <h2 style="margin-bottom:5px">Dashboard</h2>
+        <div id="loggedInAs" class="muted"></div>
+      </div>
+      <button id="logoutButton" class="secondary">Logout</button>
+    </div>
+
+    <section class="card">
+      <h2>Shop Settings</h2>
+      <form id="settingsForm">
+        <label for="shopName">Shop Name</label>
+        <input id="shopName" required>
+
+        <label for="shopAddress">Shop Address</label>
+        <textarea id="shopAddress"></textarea>
+
+        <div class="grid">
+          <div>
+            <label for="shopPhone">Phone Number</label>
+            <input id="shopPhone" type="tel">
+          </div>
+          <div>
+            <label for="instagramUrl">Instagram URL</label>
+            <input id="instagramUrl" type="url">
+          </div>
+        </div>
+
+        <label for="bannerUrl">Banner Image URL</label>
+        <input id="bannerUrl" type="text" placeholder="Existing image path ya image URL">
+        <p class="muted">Existing image path ko tabhi badlein jab aapke paas naya, valid path ho.</p>
+
+        <button type="submit">Save Shop Settings</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2 id="productFormTitle">Add New Product</h2>
+
+      <form id="productForm">
+        <input id="productId" type="hidden">
+
+        <label for="productName">Product Name *</label>
+        <input id="productName" required maxlength="150" placeholder="e.g. iPhone 17">
+
+        <div class="grid">
+          <div>
+            <label for="productBrand">Brand</label>
+            <input id="productBrand" maxlength="100" placeholder="e.g. Apple">
+          </div>
+          <div>
+            <label for="productPrice">Price (₹) *</label>
+            <input id="productPrice" type="number" min="0" step="0.01" required>
+          </div>
+        </div>
+
+        <label for="productDescription">Description</label>
+        <textarea id="productDescription" maxlength="2000"></textarea>
+
+        <label for="productImage">Image URL / Existing Image Path</label>
+        <input id="productImage" type="text" placeholder="e.g. images/iphone-17.jpg">
+
+        <label for="productStock">Stock Status</label>
+        <select id="productStock">
+          <option value="true">In Stock</option>
+          <option value="false">Out of Stock</option>
+        </select>
+
+        <button id="saveProductButton" type="submit">Add Product</button>
+        <button id="cancelEditButton" type="button" class="secondary hidden">Cancel Edit</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="topline">
+        <h2>Products</h2>
+        <button id="refreshButton" class="secondary">Refresh</button>
+      </div>
+      <div id="productList" class="muted">Products load honge...</div>
+    </section>
+  </section>
+</main>
+
+<script>
+  // Public browser configuration. Never put a service_role/secret key here.
+  const SUPABASE_URL = "https://pxazzsphdcpznyievppx.supabase.co";
+  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_IOxzroj-azycDZj4nEhKjw_ZpTXn0hR";
+
+  const db = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+  );
+
+  const $ = (id) => document.getElementById(id);
+  let currentUser = null;
+  let products = [];
+
+  function showMessage(text, type = "ok") {
+    const box = $("message");
+    box.textContent = text;
+    box.className = "message " + type;
+    box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function hideMessage() {
+    $("message").className = "message hidden";
+    $("message").textContent = "";
+  }
+
+  function errorText(error) {
+    return error && error.message ? error.message : "Koi error aaya. Dobara try karein.";
+  }
+
+  async function verifyAdmin(user) {
+    const { data, error } = await db
+      .from("admin_users")
+      .select("user_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (error) throw error;
+    return Boolean(data);
+  }
+
+  async function showDashboard(user) {
+    currentUser = user;
+    $("loginCard").classList.add("hidden");
+    $("dashboard").classList.add("hidden");
+    hideMessage();
+
+    try {
+      const isAdmin = await verifyAdmin(user);
+      if (!isAdmin) {
+        await db.auth.signOut();
+        currentUser = null;
+        $("loginCard").classList.remove("hidden");
+        showMessage("Is account ko admin permission nahi mili hai.", "error");
+        return;
+      }
+
+      $("loggedInAs").textContent = "Logged in: " + user.email;
+      $("dashboard").classList.remove("hidden");
+      await Promise.all([loadProducts(), loadSettings()]);
+    } catch (error) {
+      $("loginCard").classList.remove("hidden");
+      showMessage("Admin verify nahi ho paya: " + errorText(error), "error");
+    }
+  }
+
+  async function loadProducts() {
+    $("productList").textContent = "Products load ho rahe hain...";
+
+    const { data, error } = await db
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      $("productList").textContent = "Products load nahi hue: " + error.message;
+      return;
+    }
+
+    products = data || [];
+    renderProducts();
+  }
+
+  function renderProducts() {
+    const list = $("productList");
+    list.replaceChildren();
+
+    if (!products.length) {
+      list.textContent = "Abhi database mein koi product nahi hai.";
+      return;
+    }
+
+    products.forEach((product) => {
+      const card = document.createElement("div");
+      card.className = "product";
+
+      const title = document.createElement("h3");
+      title.textContent = product.name;
+      card.appendChild(title);
+
+      const brand = document.createElement("p");
+      brand.textContent = "Brand: " + (product.brand || "—");
+      card.appendChild(brand);
+
+      const price = document.createElement("p");
+      price.textContent = "Price: ₹" + Number(product.price || 0).toLocaleString("en-IN");
+      card.appendChild(price);
+
+      const stock = document.createElement("span");
+      stock.className = "pill";
+      stock.textContent = product.in_stock ? "In Stock" : "Out of Stock";
+      card.appendChild(stock);
+
+      if (product.description) {
+        const desc = document.createElement("p");
+        desc.textContent = product.description;
+        card.appendChild(desc);
+      }
+
+      if (product.image_url) {
+        const img = document.createElement("p");
+        img.textContent = "Image: " + product.image_url;
+        card.appendChild(img);
+      }
+
+      const edit = document.createElement("button");
+      edit.textContent = "Edit";
+      edit.addEventListener("click", () => startEdit(product));
+      card.appendChild(edit);
+
+      const remove = document.createElement("button");
+      remove.textContent = "Delete";
+      remove.className = "danger";
+      remove.addEventListener("click", () => deleteProduct(product.id));
+      card.appendChild(remove);
+
+      list.appendChild(card);
+    });
+  }
+
+  function startEdit(product) {
+    $("productId").value = product.id;
+    $("productName").value = product.name || "";
+    $("productBrand").value = product.brand || "";
+    $("productPrice").value = product.price ?? 0;
+    $("productDescription").value = product.description || "";
+    $("productImage").value = product.image_url || "";
+    $("productStock").value = String(Boolean(product.in_stock));
+    $("productFormTitle").textContent = "Edit Product";
+    $("saveProductButton").textContent = "Save Changes";
+    $("cancelEditButton").classList.remove("hidden");
+    $("productFormTitle").scrollIntoView({ behavior: "smooth" });
+  }
+
+  function resetProductForm() {
+    $("productForm").reset();
+    $("productId").value = "";
+    $("productStock").value = "true";
+    $("productFormTitle").textContent = "Add New Product";
+    $("saveProductButton").textContent = "Add Product";
+    $("cancelEditButton").classList.add("hidden");
+  }
+
+  $("cancelEditButton").addEventListener("click", resetProductForm);
+
+  $("productForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!currentUser) return;
+
+    const id = $("productId").value;
+    const product = {
+      name: $("productName").value.trim(),
+      brand: $("productBrand").value.trim() || null,
+      price: Number($("productPrice").value),
+      description: $("productDescription").value.trim() || null,
+      image_url: $("productImage").value.trim() || null,
+      in_stock: $("productStock").value === "true"
+    };
+
+    if (!product.name || !Number.isFinite(product.price) || product.price < 0) {
+      showMessage("Product name aur valid price enter karein.", "error");
+      return;
+    }
+
+    $("saveProductButton").disabled = true;
+    try {
+      let result;
+
+      if (id) {
+        result = await db.from("products").update(product).eq("id", Number(id));
+      } else {
+        result = await db.from("products").insert(product);
+      }
+
+      if (result.error) throw result.error;
+
+      showMessage(id ? "Product update ho gaya." : "Product add ho gaya.");
+      resetProductForm();
+      await loadProducts();
+    } catch (error) {
+      showMessage("Product save nahi hua: " + errorText(error), "error");
+    } finally {
+      $("saveProductButton").disabled = false;
+    }
+  });
+
+  async function deleteProduct(id) {
+    if (!confirm("Kya aap is product ko delete karna chahte hain?")) return;
+
+    const { error } = await db.from("products").delete().eq("id", id);
+    if (error) {
+      showMessage("Delete nahi hua: " + error.message, "error");
+      return;
+    }
+
+    showMessage("Product delete ho gaya.");
+    await loadProducts();
+  }
+
+  async function loadSettings() {
+    const { data, error } = await db
+      .from("shop_settings")
+      .select("*")
+      .eq("id", 1)
+      .maybeSingle();
+
+    if (error) {
+      showMessage("Shop settings load nahi hui: " + error.message, "error");
+      return;
+    }
+
+    if (!data) {
+      showMessage("Shop settings ki row nahi mili. Supabase mein id = 1 wali row check karein.", "error");
+      return;
+    }
+
+    $("shopName").value = data.shop_name || "";
+    $("shopAddress").value = data.address || "";
+    $("shopPhone").value = data.phone || "";
+    $("instagramUrl").value = data.instagram_url || "";
+    $("bannerUrl").value = data.banner_url || "";
+  }
+
+  $("settingsForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!currentUser) return;
+
+    const settings = {
+      shop_name: $("shopName").value.trim(),
+      address: $("shopAddress").value.trim(),
+      phone: $("shopPhone").value.trim(),
+      instagram_url: $("instagramUrl").value.trim(),
+      banner_url: $("bannerUrl").value.trim() || null,
+      updated_at: new Date().toISOString()
+    };
+
+    if (!settings.shop_name) {
+      showMessage("Shop name khaali nahi ho sakta.", "error");
+      return;
+    }
+
+    const { error } = await db
+      .from("shop_settings")
+      .update(settings)
+      .eq("id", 1);
+
+    if (error) {
+      showMessage("Settings save nahi hui: " + error.message, "error");
+      return;
+    }
+
+    showMessage("Shop settings database mein save ho gayi.");
+  });
+
+  $("loginForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    hideMessage();
+    $("loginButton").disabled = true;
+
+    try {
+      const { data, error } = await db.auth.signInWithPassword({
+        email: $("email").value.trim(),
+        password: $("password").value
+      });
+
+      if (error) throw error;
+      await showDashboard(data.user);
+    } catch (error) {
+      showMessage("Login failed: " + errorText(error), "error");
+    } finally {
+      $("loginButton").disabled = false;
+    }
+  });
+
+  $("logoutButton").addEventListener("click", async () => {
+    const { error } = await db.auth.signOut();
+    if (error) {
+      showMessage("Logout nahi hua: " + error.message, "error");
+      return;
+    }
+
+    currentUser = null;
+    $("dashboard").classList.add("hidden");
+    $("loginCard").classList.remove("hidden");
+    $("password").value = "";
+    showMessage("Logout successful.");
+  });
+
+  $("refreshButton").addEventListener("click", async () => {
+    await Promise.all([loadProducts(), loadSettings()]);
+    showMessage("Data refresh ho gaya.");
+  });
+
+  (async function init() {
+    const { data, error } = await db.auth.getSession();
+    if (error) {
+      showMessage(error.message, "error");
+      return;
+    }
+    if (data.session) {
+      await showDashboard(data.session.user);
+    }
+  })();
+</script>
+</body>
+</html>
